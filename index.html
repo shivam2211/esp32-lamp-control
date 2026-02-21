@@ -246,8 +246,10 @@
     async function checkConnection() {
       const dot = document.getElementById('status-dot');
       const text = document.getElementById('status-text');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       try {
-        const res = await fetch(`${baseUrl}/ping`);
+        const res = await fetch(`${baseUrl}/ping`, { signal: controller.signal });
         if (res.ok) {
           dot.classList.remove('bg-slate-500', 'animate-pulse');
           dot.classList.add('bg-emerald-500');
@@ -266,6 +268,8 @@
         text.textContent = 'Offline';
         text.classList.remove('text-slate-400');
         text.classList.add('text-red-400/80');
+      } finally {
+        clearTimeout(timeoutId);
       }
     }
     checkConnection();
