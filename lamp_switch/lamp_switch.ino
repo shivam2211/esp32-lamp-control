@@ -6,7 +6,7 @@ const char* password = "Tan@12345";
 WiFiServer server(80);
 
 // SAFE ESP32-C3 GPIOs
-const int LED1 = 8;
+const int LED1 = 0;
 const int LED2 = 4;
 const int LED3 = 3;
 const int LED4 = 2;
