@@ -12,10 +12,16 @@ const int LED3 = 3;
 const int LED4 = 2;
 const int LED5 = 1;
 
+void sendCorsHeaders(WiFiClient &client) {
+  client.println("Access-Control-Allow-Origin: *");
+  client.println("Access-Control-Allow-Methods: GET, OPTIONS");
+}
+
 void sendText(WiFiClient &client, const String &body) {
   client.println("HTTP/1.1 200 OK");
   client.println("Content-Type: text/plain");
   client.println("Connection: close");
+  sendCorsHeaders(client);
   client.println();
   client.print(body);
 }
@@ -54,6 +60,16 @@ void loop() {
   String req = client.readStringUntil('\n');
   client.flush();
   req.trim();
+
+  // Handle CORS preflight (OPTIONS)
+  if (req.indexOf("OPTIONS") != -1) {
+    client.println("HTTP/1.1 204 No Content");
+    client.println("Connection: close");
+    sendCorsHeaders(client);
+    client.println();
+    client.stop();
+    return;
+  }
 
   if (req.indexOf("/led1/on")  != -1) digitalWrite(LED1, HIGH);
   if (req.indexOf("/led1/off") != -1) digitalWrite(LED1, LOW);
