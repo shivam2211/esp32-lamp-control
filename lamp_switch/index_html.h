@@ -1,3 +1,8 @@
+#ifndef INDEX_HTML_H
+#define INDEX_HTML_H
+
+// Embedded Floor Lamp Control UI (same as index.html), served at GET / and GET /index.html
+static const char INDEX_HTML[] PROGMEM = R"LAMPIDX(
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -38,7 +43,6 @@
 </head>
 <body class="bg-frame min-h-screen font-display antialiased text-slate-100">
   <div class="max-w-md mx-auto px-6 py-10">
-    <!-- Header -->
     <header class="text-center mb-10">
       <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-800/80 border border-slate-700/50 mb-4">
         <svg class="w-8 h-8 text-amber-400 rotate-180" fill="currentColor" viewBox="0 0 24 24">
@@ -48,18 +52,14 @@
       <h1 class="text-2xl font-semibold tracking-tight text-white">Floor Lamp</h1>
       <p class="text-slate-500 text-sm mt-1">Control all 5 bulbs</p>
     </header>
-
-    <!-- ESP32 API Host -->
     <div class="mb-6 rounded-xl bg-slate-900/90 border border-slate-700/50 p-3">
       <label for="api-host" class="block text-xs text-slate-400 mb-2">ESP32 API Host</label>
       <div class="flex gap-2">
         <input id="api-host" type="text" value="192.168.1.11" placeholder="192.168.1.11" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400/60">
         <button id="save-host" type="button" class="px-3 py-2 rounded-lg text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600">Save</button>
       </div>
-      <p id="host-hint" class="text-[11px] text-slate-500 mt-2">Used for all API calls from GitHub Pages.</p>
+      <p id="host-hint" class="text-[11px] text-slate-500 mt-2">Served from this device. Change if using a different host.</p>
     </div>
-
-    <!-- Bulb Controls -->
     <div class="space-y-3">
       <template id="bulb-template">
         <div class="bulb-card bg-slate-900/90 rounded-xl border border-slate-700/50 p-4 flex items-center justify-between gap-4 transition-all duration-300 hover:border-slate-600/50" data-bulb="">
@@ -77,21 +77,12 @@
           </div>
         </div>
       </template>
-
       <div id="bulbs-container"></div>
     </div>
-
-    <!-- All On / All Off -->
     <div class="mt-8 flex gap-3">
-      <button id="all-on" type="button" class="flex-1 py-3 px-4 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-medium transition-colors border border-amber-500/30">
-        All On
-      </button>
-      <button id="all-off" type="button" class="flex-1 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 font-medium transition-colors border border-slate-600/50">
-        All Off
-      </button>
+      <button id="all-on" type="button" class="flex-1 py-3 px-4 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-medium transition-colors border border-amber-500/30">All On</button>
+      <button id="all-off" type="button" class="flex-1 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 font-medium transition-colors border border-slate-600/50">All Off</button>
     </div>
-
-    <!-- Connection status -->
     <div class="mt-8 flex flex-col items-center gap-2">
       <div id="connection-status" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/50">
         <span id="status-dot" class="w-2 h-2 rounded-full bg-slate-500 animate-pulse"></span>
@@ -99,85 +90,60 @@
       </div>
       <p id="status" class="text-center text-slate-600 text-xs">Ready</p>
     </div>
-
-    <!-- Footer -->
     <p class="text-center text-slate-600 text-xs mt-6">made for <span class="text-red-400">Malu</span> <span class="text-red-400">❤</span></p>
   </div>
-
   <script>
     const BULB_COUNT = 5;
     const DEFAULT_API_HOST = '192.168.1.11';
     const API_HOST_STORAGE_KEY = 'esp32ApiHost';
+    const BULB_UI_TO_API = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 };
     const bulbCards = new Array(BULB_COUNT + 1);
-
-    // UI button index (1–5) → API led number. Change here to remap which button calls which /ledN/.
-    const BULB_UI_TO_API = {
-      1: 1,
-      2: 2,
-      3: 3,
-      4: 4,
-      5: 5,
-    };
-
     function normalizeBaseUrl(value) {
       let host = (value || '').trim();
       if (!host) host = DEFAULT_API_HOST;
-      if (!/^https?:\/\//i.test(host)) host = `http://${host}`;
+      if (!/^https?:\/\//i.test(host)) host = 'http://' + host;
       return host.replace(/\/+$/, '');
     }
-
     let baseUrl = normalizeBaseUrl(localStorage.getItem(API_HOST_STORAGE_KEY) || DEFAULT_API_HOST);
-
     function syncHostInput() {
-      const input = document.getElementById('api-host');
-      const hint = document.getElementById('host-hint');
+      var input = document.getElementById('api-host');
+      var hint = document.getElementById('host-hint');
       input.value = baseUrl.replace(/^https?:\/\//i, '');
-      hint.textContent = `Using: ${baseUrl}`;
+      hint.textContent = 'Using: ' + baseUrl;
     }
-
     function saveApiHost() {
-      const input = document.getElementById('api-host');
+      var input = document.getElementById('api-host');
       baseUrl = normalizeBaseUrl(input.value);
       localStorage.setItem(API_HOST_STORAGE_KEY, baseUrl);
       syncHostInput();
       loadInitialState();
       checkConnection();
     }
-
     function getApiUrl(uiIndex, desiredOn) {
-      const apiLed = BULB_UI_TO_API[uiIndex] ?? uiIndex;
-      const apiState = desiredOn ? 'off' : 'on';
-      return `${baseUrl}/led${apiLed}/${apiState}`;
+      var apiLed = BULB_UI_TO_API[uiIndex] !== undefined ? BULB_UI_TO_API[uiIndex] : uiIndex;
+      var apiState = desiredOn ? 'off' : 'on';
+      return baseUrl + '/led' + apiLed + '/' + apiState;
     }
-
     function createBulbCard(index) {
-      const template = document.getElementById('bulb-template');
-      const clone = template.content.cloneNode(true);
-      const card = clone.querySelector('.bulb-card');
-      const label = clone.querySelector('[data-label]');
-      const icon = clone.querySelector('[data-icon]');
-
+      var template = document.getElementById('bulb-template');
+      var clone = template.content.cloneNode(true);
+      var card = clone.querySelector('.bulb-card');
+      var label = clone.querySelector('[data-label]');
       card.dataset.bulb = index;
-      label.textContent = `Bulb ${index}`;
+      label.textContent = 'Bulb ' + index;
       bulbCards[index] = card;
-
-      const offBtn = clone.querySelector('[data-action="off"]');
-      const onBtn = clone.querySelector('[data-action="on"]');
-
+      var offBtn = clone.querySelector('[data-action="off"]');
+      var onBtn = clone.querySelector('[data-action="on"]');
       offBtn.classList.add('bg-slate-700', 'text-slate-400', 'hover:bg-slate-600');
       onBtn.classList.add('bg-amber-500/20', 'text-amber-400', 'hover:bg-amber-500/30', 'border', 'border-amber-500/30');
-
-      offBtn.onclick = () => toggleBulb(index, false);
-      onBtn.onclick = () => toggleBulb(index, true);
-
+      offBtn.onclick = function() { toggleBulb(index, false); };
+      onBtn.onclick = function() { toggleBulb(index, true); };
       return clone;
     }
-
     function setBulbState(card, on) {
-      const icon = card.querySelector('[data-icon]');
-      const offBtn = card.querySelector('[data-action="off"]');
-      const onBtn = card.querySelector('[data-action="on"]');
-
+      var icon = card.querySelector('[data-icon]');
+      var offBtn = card.querySelector('[data-action="off"]');
+      var onBtn = card.querySelector('[data-action="on"]');
       if (on) {
         icon.classList.remove('bg-slate-800');
         icon.classList.add('bulb-on', 'bg-amber-500/20', 'border', 'border-amber-500/40');
@@ -194,98 +160,63 @@
         onBtn.className = 'toggle-btn px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30';
       }
     }
-
-    async function toggleBulb(bulb, on) {
-      const stateLabel = on ? 'on' : 'off';
-      const statusEl = document.getElementById('status');
-      statusEl.textContent = `Bulb ${bulb} ${stateLabel}...`;
-
-      try {
-        const res = await fetch(getApiUrl(bulb, on), { cache: 'no-store' });
+    function toggleBulb(bulb, on) {
+      var statusEl = document.getElementById('status');
+      statusEl.textContent = 'Bulb ' + bulb + ' ' + (on ? 'on' : 'off') + '...';
+      fetch(getApiUrl(bulb, on), { cache: 'no-store' }).then(function(res) {
         if (res.ok) {
-          const card = bulbCards[bulb];
+          var card = bulbCards[bulb];
           if (card) setBulbState(card, on);
           statusEl.textContent = 'Ready';
-        } else {
-          statusEl.textContent = `Error: ${res.status}`;
-        }
-      } catch (err) {
-        statusEl.textContent = `Error: ${err.message}`;
-      }
+        } else { statusEl.textContent = 'Error: ' + res.status; }
+      }).catch(function(err) { statusEl.textContent = 'Error: ' + err.message; });
     }
-
-    async function setAllBulbs(on) {
-      const statusEl = document.getElementById('status');
+    function setAllBulbs(on) {
+      var statusEl = document.getElementById('status');
       statusEl.textContent = on ? 'Turning all on...' : 'Turning all off...';
-
-      const promises = [];
-      for (let i = 1; i <= BULB_COUNT; i++) {
-        promises.push(fetch(getApiUrl(i, on), { cache: 'no-store' }));
-      }
-
-      try {
-        await Promise.all(promises);
-        for (let i = 1; i <= BULB_COUNT; i++) {
-          if (bulbCards[i]) setBulbState(bulbCards[i], on);
-        }
+      var promises = [];
+      for (var i = 1; i <= BULB_COUNT; i++) promises.push(fetch(getApiUrl(i, on), { cache: 'no-store' }));
+      Promise.all(promises).then(function() {
+        for (var i = 1; i <= BULB_COUNT; i++) if (bulbCards[i]) setBulbState(bulbCards[i], on);
         statusEl.textContent = 'Ready';
-      } catch (err) {
-        statusEl.textContent = `Error: ${err.message}`;
-      }
+      }).catch(function(err) { statusEl.textContent = 'Error: ' + err.message; });
     }
-
     function applyBulbStates(states) {
-      for (let i = 1; i <= BULB_COUNT; i++) {
-        const card = bulbCards[i];
+      for (var i = 1; i <= BULB_COUNT; i++) {
+        var card = bulbCards[i];
         if (!card) continue;
         setBulbState(card, !!states[i - 1]);
       }
     }
-
-    async function loadInitialState() {
-      const statusEl = document.getElementById('status');
+    function loadInitialState() {
+      var statusEl = document.getElementById('status');
       statusEl.textContent = 'Syncing bulb state...';
-      try {
-        const res = await fetch(`${baseUrl}/state`, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`state ${res.status}`);
-        const data = await res.json();
+      return fetch(baseUrl + '/state', { cache: 'no-store' }).then(function(res) {
+        if (!res.ok) throw new Error('state ' + res.status);
+        return res.json();
+      }).then(function(data) {
         if (!data || !Array.isArray(data.bulbs)) throw new Error('invalid state');
         applyBulbStates(data.bulbs);
         statusEl.textContent = 'Ready';
-      } catch (err) {
+      }).catch(function(err) {
+        // Fallback keeps UI responsive even if state endpoint is unavailable.
         applyBulbStates([false, false, false, false, false]);
         statusEl.textContent = 'Ready';
-      }
+      });
     }
-
-    // Init
-    const container = document.getElementById('bulbs-container');
-    const fragment = document.createDocumentFragment();
-    for (let i = 1; i <= BULB_COUNT; i++) {
-      fragment.appendChild(createBulbCard(i));
-    }
+    var container = document.getElementById('bulbs-container');
+    var fragment = document.createDocumentFragment();
+    for (var i = 1; i <= BULB_COUNT; i++) fragment.appendChild(createBulbCard(i));
     container.appendChild(fragment);
-
     document.getElementById('save-host').onclick = saveApiHost;
-    document.getElementById('api-host').addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        saveApiHost();
-      }
-    });
+    document.getElementById('api-host').addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); saveApiHost(); } });
     syncHostInput();
-
-    document.getElementById('all-on').onclick = () => setAllBulbs(true);
-    document.getElementById('all-off').onclick = () => setAllBulbs(false);
-
-    // Connection status check
-    async function checkConnection() {
-      const dot = document.getElementById('status-dot');
-      const text = document.getElementById('status-text');
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      try {
-        const res = await fetch(`${baseUrl}/ping`, { signal: controller.signal, cache: 'no-store' });
+    document.getElementById('all-on').onclick = function() { setAllBulbs(true); };
+    document.getElementById('all-off').onclick = function() { setAllBulbs(false); };
+    function checkConnection() {
+      var dot = document.getElementById('status-dot');
+      var text = document.getElementById('status-text');
+      fetch(baseUrl + '/ping', { cache: 'no-store' }).then(function(res) {
         if (res.ok) {
           dot.classList.remove('bg-slate-500', 'animate-pulse');
           dot.classList.add('bg-emerald-500');
@@ -298,15 +229,13 @@
           text.textContent = 'API error';
           text.classList.add('text-amber-400/80');
         }
-      } catch (err) {
+      }).catch(function() {
         dot.classList.remove('bg-emerald-500');
         dot.classList.add('bg-red-500/80', 'animate-pulse');
         text.textContent = 'Offline';
         text.classList.remove('text-slate-400');
         text.classList.add('text-red-400/80');
-      } finally {
-        clearTimeout(timeoutId);
-      }
+      });
     }
     loadInitialState();
     checkConnection();
@@ -314,3 +243,6 @@
   </script>
 </body>
 </html>
+)LAMPIDX";
+
+#endif
