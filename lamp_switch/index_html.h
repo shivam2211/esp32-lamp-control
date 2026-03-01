@@ -55,7 +55,7 @@ static const char INDEX_HTML[] PROGMEM = R"LAMPIDX(
     <div class="mb-6 rounded-xl bg-slate-900/90 border border-slate-700/50 p-3">
       <label for="api-host" class="block text-xs text-slate-400 mb-2">ESP32 API Host</label>
       <div class="flex gap-2">
-        <input id="api-host" type="text" value="192.168.1.11" placeholder="192.168.1.11" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400/60">
+        <input id="api-host" type="text" value="192.168.1.50" placeholder="192.168.1.50" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400/60">
         <button id="save-host" type="button" class="px-3 py-2 rounded-lg text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600">Save</button>
       </div>
       <p id="host-hint" class="text-[11px] text-slate-500 mt-2">Served from this device. Change if using a different host.</p>
@@ -94,7 +94,7 @@ static const char INDEX_HTML[] PROGMEM = R"LAMPIDX(
   </div>
   <script>
     const BULB_COUNT = 5;
-    const DEFAULT_API_HOST = '192.168.1.11';
+    const DEFAULT_API_HOST = '192.168.1.50';
     const API_HOST_STORAGE_KEY = 'esp32ApiHost';
     const BULB_UI_TO_API = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 };
     const bulbCards = new Array(BULB_COUNT + 1);
